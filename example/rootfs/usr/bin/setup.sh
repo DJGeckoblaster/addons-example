@@ -15,58 +15,6 @@ CheckCpuType(){
 	echo "(I) Platform application binary interface = ${ARCH}"
 	if [ ${ARCH} = "64" -o ${ARCH} = "x86_64" ] ; then
 		cpuArch="64"
-	elif [ ${ARCH} = "i386" -o $ARCH = "i586" -o $ARCH = "i686" ] ; then
-		cpuArch="32"
-	elif [ ${ARCH} = "aarch64" -a ${BIT} ] ; then
-		cpuArch="AARCH64"
-	elif [ ${ARCH} = "armv61" ] ; then
-		cpuArch="ARM"
-	else
-		ReadELF="readelf -A /bin/sh"
-		tmpfile="tmp.info"
-		${ReadELF}>${tmpfile} 2>&1
-		CheckConditionARMhf="Tag_ABI_VFP_args: VFP registers"
-		CheckConditionMIPS="Tag_GNU_MIPS_ABI_FP"
-		CheckConditionTagARM="Tag_ARM_ISA_use"
-		grep -q "${CheckConditionARMhf}" ${tmpfile}
-		if [ $? = 0 ];then
-			cpuArch="ARMhf"
-		else
-			grep -q "${CheckConditionMIPS}" ${tmpfile}
-			if [ $? = 0 ];then
-				cpuArch="MIPS"
-			else
-				grep -q "${CheckConditionTagARM}" ${tmpfile}
-				if [ $? = 0 ];then
-					cpuArch="ARM"
-				else
-					#for Silent Mode.
-					if [ ${SilentMode} = "true" ]; then
-						echo "Plese setup CPU Type for Silent Mode in setup.sh"
-						exit 1
-					fi
-										
-					echo "Which platform arch do you use?"
-					echo "[1] ARM  [2] ARMhf  [3] AARCH64  [4] MIPS"
-					while : ; do
-						read arch
-						case $arch in
-							1)	cpuArch="ARM"
-								break;;
-							2)	cpuArch="ARMhf"
-								break;;
-							3)	cpuArch="AARCH64"
-								break;;
-							4)	cpuArch="MIPS"
-								break;;
-							*)	echo "(I) Please choose [1], [2], [3] or [4]"
-								echo -n "(A) ";;
-						esac
-					done
-				fi
-			fi
-		fi
-		rm ${tmpfile}
 	fi
 }
 
@@ -638,17 +586,7 @@ blacklist usbtouchscreen\
 ShowBlacklistMenu() {
     echo "(I) It is highly recommended to add it into blacklist."
     echo -n "(Q) Do you want to add it into blacklist? (y/n) "
-    while : ; do
-        read yorn
-        case $yorn in
-            [Yy]) Add2Blacklist $1
-               break;;
-            [Nn]) # Nothing to do here.
-               break;;
-            *) echo "(I) Please choose [y] or [n]"
-               echo -n "(A) ";;
-        esac
-    done
+	Add2Blacklist $1
 }
 
 CheckModuleAndBlacklist() {
@@ -1147,7 +1085,7 @@ The programs, including but not limited to software and/or firmware (hereinafter
 Disclaimer: EETI MAKES NO WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, WITH REGARD TO PROGRAMS, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. EETI reserves the right to make changes without further notice to the Programs described herein. Licensee agrees that EETI does not assume any liability, damages or costs, including but not limited to attorney fees, arising out from Programs themselves or those arising out from the application or combination Programs into other products or circuit. The use or the inclusion of EETI's Programs implies that the Licensee assumes all risk of such use and in doing so indemnifies EETI against all charges, including but not limited to any claims to infringement of any third party's intellectual property right."
 	
 	echo ""
-	if [ ${SilentMode} = "false" ]; then 
+	if [ 0 ]; then 
 		echo "Do you agree with above patent declaration?"
 		echo " [Y] Yes, I agree.  [N] No, I don't agree."
 		read ans
@@ -1177,19 +1115,7 @@ AskInterface(){
 	echo ""
 	echo "(Q) Which interface controller do you use?"
     echo -n "(I) [1] RS232 [2] USB [3] PS2 : "
-	while : ; do
-		read interface
-		case $interface in
-			1)	interface="rs232"
-				break;;
-			2)	interface="usb"
-				break;;
-			3)	interface="ps2"
-				break;;
-			*)	echo "(I) Please choose [1] or [2] or [3]"
-				echo -n "(A) ";;
-		esac
-	done
+	interface="rs232"
 }
 
 AskDevNums(){
@@ -1198,62 +1124,27 @@ AskDevNums(){
 	echo -n "(I) Default [1]:"
 	read nums
 	echo "$nums"
-	if [ -z $nums ];then
-		echo "(I) Device Nums is set to 1"
-	elif [ $nums -le 10 -a $nums -gt 1 ];then
-		sed -i '/DeviceNums/s/1/'${nums}'/' $etcpath/$IniFile 
-		echo "(I) Device Nums is set to ${nums}"
-	else
-		echo "(I) Device Nums is set to 1"
-	fi
-	
-	if [ ${interface} != "rs232" ]; then
-		sed -i '/ScanInterface/s/0/1/' $etcpath/$IniFile 
-	fi
-
-	if [ -e ${rclocalpathSUSE11} ]; then
-		sed -i '/EventType/s/0/1/' $etcpath/$IniFile
-	fi
-
+	-z $nums
 }
 
 AskTslib(){
 	echo ""
 	echo "(Q) Do you need to work with Tslib?"
 	echo -n "(I) [y/N] :"
-	read ans
-	if [ -z $ans ];then
-		echo "(I) No tslib support"
-	elif [ ${ans} = "Y" -o ${ans} = "y" ];then
-		sed -i '/BtnType/s/0/1/' $etcpath/$IniFile  #replace BtnType value 0 to 1 
-		#sed -i '/EndOfDevice/i BtnType  	1' $etcpath/$IniFile #insert a line BtnType before EndOfDevice
-	else
-		echo "(I) No tslib support"
-	fi
 }
 
 AskSuppotRatationMultiMonitor(){
 	echo ""
 	echo "(Q) Do you have requirement of monitor rotation or multi monitor?"
 	echo -n "(I) [y/N] :"
-	read ans
-	if [ -z $ans ];then
 		SupportRotationMultiMonitor="false"
-	elif [ ${ans} = "Y" -o ${ans} = "y" ];then
-		SupportRotationMultiMonitor="true"
-	fi
 }
 
 AskSupportBeep(){
 	echo ""
 	echo "(Q) Do you need beep sound?"
 	echo -n "(I) [y/N] :"
-	read ans
-	if [ -z $ans ];then
-		SupportBeep="false"
-	elif [ ${ans} = "Y" -o ${ans} = "y" ];then
 		SupportBeep="true"
-	fi
 }
 
 EnablePCSPKR(){
@@ -1321,7 +1212,6 @@ if [ $# = 0 ]; then
 		fi
 		echo "(I) Please assign MonitorName in /etc/eGTouchL.ini. ex:\"eDP-1\"  ,you can check monitor name by command \"xrandr\"."
 		echo "(I) Press [Enter] key to continue.........."
-		read DISCARD
 		
 		AskSupportBeep
 		if [ $SupportBeep = "true" ];then
